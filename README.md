@@ -14,6 +14,8 @@ pub fn main () void {
   const handle_1 = try entities.append(1.5);
   const handle_2 = try entities.append(2.5);
   const handle_3 = try entities.append(3.5);
+  // You could hardcode specific handle id.
+  const handle_4 = try entities.append_hard(4.5, 55);
 
   // Getting the inner data by using associated handle.
   print("{}\n", .{entities.get(handle_2)});
@@ -26,6 +28,5 @@ pub fn main () void {
   while(it.next()) |datum| {
     print("datum: {}\n", .{datum.*});
   }
-
 }
 ```

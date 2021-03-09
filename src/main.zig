@@ -240,6 +240,26 @@ test "entities.append" {
     testing.expectEqual(entities.handles.get(3).? == 2, true);
 }
 
+test "entities.append_hard" {
+    var entities = Entities(i32).init(testing.allocator);
+    defer entities.deinit();
+
+    const handle_1 = try entities.append_hard(0, 1);
+    const handle_2 = try entities.append_hard(0, 2);
+    const handle_3 = try entities.append_hard(0, 55);
+    const handle_4 = try entities.append(5);
+
+    testing.expectEqual(entities.is_valid(handle_1), true);
+    testing.expectEqual(entities.is_valid(handle_2), true);
+    testing.expectEqual(entities.is_valid(handle_3), true);
+    testing.expectEqual(entities.is_valid(handle_4), true);
+
+    testing.expectEqual(handle_1.id == 1, true);
+    testing.expectEqual(handle_2.id == 2, true);
+    testing.expectEqual(handle_3.id == 55, true);
+    testing.expectEqual(handle_4.id == 3, true);
+}
+
 test "entities.get" {
     var entities = Entities(f32).init(testing.allocator);
     defer entities.deinit();
