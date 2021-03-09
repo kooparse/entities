@@ -7,8 +7,8 @@ const ArrayList = std.ArrayList;
 const ArenaAllocator = std.heap.ArenaAllocator;
 const AutoHashMap = std.AutoHashMap;
 
-/// Handle is like a uniq Id, which is used to retrieve a specific datum
-/// stored in Entities data structure.
+/// Handle is like an uniq Id, which is used to retrieve a specific datum
+/// stored in the Entities data-structure.
 pub fn Handle(comptime T: anytype) type {
     return struct {
         id: i32,
@@ -19,15 +19,16 @@ pub fn Handle(comptime T: anytype) type {
     };
 }
 
-/// Entities datastructure had to meet strict requirements:
 ///
-/// 1) Refering stored data chuncks as simple integer because it's much
-///    easy to serialized it.
+/// This entities data-structure had to meet strict requirements:
+///
+/// 1) Refering data chunck as only one integer because it's much
+///    easy to serialize it.
 ///
 /// 2) Shouldn't suffer from ABA problems.
 ///
-/// 3) Being able to preallocate bunch of ids
-///    (used when ids are stored on the system and refered to other ones).
+/// 3) Being able to hardcode ids without further referencing problems,
+///    which is often the case when items are coming from serialized data).
 ///
 pub fn Entities(comptime T: anytype) type {
     return struct {
