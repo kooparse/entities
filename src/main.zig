@@ -141,9 +141,9 @@ pub fn Entities(comptime T: anytype) type {
             if (self.is_valid(handle)) {
                 increment_id(self, null);
 
-                const old_entry = self.handles.getEntry(handle.id).?.*;
-                self.handles.putNoClobber(self.last_id, old_entry.value) catch unreachable;
-                self.handles.removeAssertDiscard(old_entry.key);
+                const old_entry = self.handles.getEntry(handle.id).?;
+                self.handles.putNoClobber(self.last_id, old_entry.value_ptr.*) catch unreachable;
+                _ = self.handles.remove(old_entry.key_ptr.*);
 
                 self.free.append(self.last_id) catch |e| {
                     panic("Crash while removing entity: '{}'\n", .{e});
@@ -168,13 +168,14 @@ pub fn Entities(comptime T: anytype) type {
         pub fn clear(self: *Self) void {
             var it = self.handles.iterator();
             while (it.next()) |entry| {
+                const key = entry.key_ptr.*;
                 var already_freed = false;
 
                 for (self.free.items) |free_idx| {
-                    if (free_idx == entry.key) already_freed = true;
+                    if (free_idx == key) already_freed = true;
                 }
 
-                if (!already_freed) self.remove(.{ .id = entry.key });
+                if (!already_freed) self.remove(.{ .id = key });
             }
         }
 
@@ -200,14 +201,14 @@ pub fn Entities(comptime T: anytype) type {
                     it.index = iter.index;
 
                     for (it.entities.free.items) |idx| {
-                        if (entry.key == idx) {
+                        if (entry.key_ptr.* == idx) {
                             is_freed = true;
                             break;
                         }
                     }
 
                     if (!is_freed) {
-                        return &it.entities.data.items[entry.value];
+                        return &it.entities.data.items[entry.value_ptr.*];
                     }
                 }
 
@@ -221,11 +222,11 @@ test "entities.init" {
     var entities = Entities(i32).init(testing.allocator);
     defer entities.deinit();
 
-    testing.expectEqual(entities.is_valid(Handle(i32).new(0)), false);
-    testing.expectEqual(entities.handles.unmanaged.size, 0);
-    testing.expectEqual(entities.data.items.len, 0);
-    testing.expectEqual(entities.free.items.len, 0);
-    testing.expectEqual(entities.last_id, 0);
+    try testing.expectEqual(entities.is_valid(Handle(i32).new(0)), false);
+    try testing.expectEqual(entities.handles.unmanaged.size, 0);
+    try testing.expectEqual(entities.data.items.len, 0);
+    try testing.expectEqual(entities.free.items.len, 0);
+    try testing.expectEqual(entities.last_id, 0);
 }
 
 test "entities.append" {
@@ -236,9 +237,9 @@ test "entities.append" {
     const handle_2 = try entities.append(22);
     const handle_3 = try entities.append(33);
 
-    testing.expectEqual(entities.handles.get(1).? == 0, true);
-    testing.expectEqual(entities.handles.get(2).? == 1, true);
-    testing.expectEqual(entities.handles.get(3).? == 2, true);
+    try testing.expectEqual(entities.handles.get(1).? == 0, true);
+    try testing.expectEqual(entities.handles.get(2).? == 1, true);
+    try testing.expectEqual(entities.handles.get(3).? == 2, true);
 }
 
 test "entities.append_hard" {
@@ -250,15 +251,15 @@ test "entities.append_hard" {
     const handle_3 = try entities.append_hard(0, 55);
     const handle_4 = try entities.append(5);
 
-    testing.expectEqual(entities.is_valid(handle_1), true);
-    testing.expectEqual(entities.is_valid(handle_2), true);
-    testing.expectEqual(entities.is_valid(handle_3), true);
-    testing.expectEqual(entities.is_valid(handle_4), true);
+    try testing.expectEqual(entities.is_valid(handle_1), true);
+    try testing.expectEqual(entities.is_valid(handle_2), true);
+    try testing.expectEqual(entities.is_valid(handle_3), true);
+    try testing.expectEqual(entities.is_valid(handle_4), true);
 
-    testing.expectEqual(handle_1.id == 1, true);
-    testing.expectEqual(handle_2.id == 2, true);
-    testing.expectEqual(handle_3.id == 55, true);
-    testing.expectEqual(handle_4.id == 3, true);
+    try testing.expectEqual(handle_1.id == 1, true);
+    try testing.expectEqual(handle_2.id == 2, true);
+    try testing.expectEqual(handle_3.id == 55, true);
+    try testing.expectEqual(handle_4.id == 3, true);
 }
 
 test "entities.get" {
@@ -269,9 +270,9 @@ test "entities.get" {
     const handle_2 = try entities.append(22.0);
     const handle_3 = try entities.append(33.0);
 
-    testing.expectEqual(entities.get(handle_1).*, 11.0);
-    testing.expectEqual(entities.get(handle_2).*, 22.0);
-    testing.expectEqual(entities.get(handle_3).*, 33.0);
+    try testing.expectEqual(entities.get(handle_1).*, 11.0);
+    try testing.expectEqual(entities.get(handle_2).*, 22.0);
+    try testing.expectEqual(entities.get(handle_3).*, 33.0);
 }
 
 test "entities.remove" {
@@ -283,14 +284,14 @@ test "entities.remove" {
     const handle_3 = try entities.append(33);
 
     entities.remove(handle_2);
-    testing.expectEqual(entities.free.items.len, 1);
-    testing.expectEqual(entities.is_valid(handle_2), false);
+    try testing.expectEqual(entities.free.items.len, 1);
+    try testing.expectEqual(entities.is_valid(handle_2), false);
 
     const handle_4 = try entities.append(44);
-    testing.expectEqual(handle_2.id == handle_4.id, false);
-    testing.expectEqual(entities.is_valid(handle_2), false);
-    testing.expectEqual(entities.free.items.len, 0);
-    testing.expectEqual(entities.get(handle_4).*, 44);
+    try testing.expectEqual(handle_2.id == handle_4.id, false);
+    try testing.expectEqual(entities.is_valid(handle_2), false);
+    try testing.expectEqual(entities.free.items.len, 0);
+    try testing.expectEqual(entities.get(handle_4).*, 44);
 }
 
 test "entities.clear" {
@@ -301,15 +302,15 @@ test "entities.clear" {
     const handle_2 = try entities.append(22);
     const handle_3 = try entities.append(33);
 
-    testing.expectEqual(entities.is_valid(handle_1), true);
-    testing.expectEqual(entities.is_valid(handle_2), true);
-    testing.expectEqual(entities.is_valid(handle_3), true);
+    try testing.expectEqual(entities.is_valid(handle_1), true);
+    try testing.expectEqual(entities.is_valid(handle_2), true);
+    try testing.expectEqual(entities.is_valid(handle_3), true);
 
     entities.clear();
 
-    testing.expectEqual(entities.is_valid(handle_1), false);
-    testing.expectEqual(entities.is_valid(handle_2), false);
-    testing.expectEqual(entities.is_valid(handle_3), false);
+    try testing.expectEqual(entities.is_valid(handle_1), false);
+    try testing.expectEqual(entities.is_valid(handle_2), false);
+    try testing.expectEqual(entities.is_valid(handle_3), false);
 }
 
 test "entities.interator" {
@@ -326,8 +327,8 @@ test "entities.interator" {
     var count: f32 = 0;
     while (it.next()) |value| : (count += value.*) {
         const expectedValue: f32 = if (count == 0) 10.0 else 30.0;
-        testing.expectEqual(value.*, expectedValue);
+        try testing.expectEqual(value.*, expectedValue);
     }
 
-    testing.expectEqual(count, 40);
+    try testing.expectEqual(count, 40);
 }
